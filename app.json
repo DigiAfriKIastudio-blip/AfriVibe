@@ -1,7 +1,9 @@
+
 {
   "expo": {
     "name": "AfriVibe",
-    "slug": "afrivibe",
+    "slug": "afrivibe-app",
+    "owner": "ablayethiams-team",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -56,6 +58,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "60bd24b6-1472-4177-92ba-565fffcc131b"
+      }
     }
   }
 }
