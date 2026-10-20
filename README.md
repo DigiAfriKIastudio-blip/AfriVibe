@@ -1,17 +1,27 @@
 # AfriVibe
 
-Application mobile Android développée avec **React Native**, **Expo** et **TypeScript**.
+Application mobile Android de **vidéos courtes**, développée avec **React Native**,
+**Expo (SDK 58)** et **TypeScript**.
+
+> **Statut :** première version fonctionnelle. Le fil vertical, la lecture vidéo, les
+> likes, les commentaires, les favoris, les abonnements, la recherche et la création de
+> publications sont opérationnels. Les données sont stockées **localement** sur
+> l'appareil ; le backend Supabase est préparé mais pas encore branché
+> (voir [docs/BACKEND.md](docs/BACKEND.md)).
 
 ---
 
-## À propos
+## Aperçu
 
-**AfriVibe** est un projet d'application mobile destiné à l'écosystème Android. Ce dépôt
-regroupe le code source de l'application, sa configuration de build et l'automatisation
-permettant de générer des APK de test.
-
-> **Statut :** dépôt initialisé. Le socle applicatif (Expo + TypeScript) sera ajouté à
-> l'étape suivante du projet. Ce README décrit la cible technique retenue.
+| Écran | Contenu |
+| --- | --- |
+| **Accueil** | Fil vertical plein écran, deux onglets (« Pour toi » / « Abonnements »), lecture automatique, pause au toucher, son, barre de progression |
+| **Découvrir** | Recherche par compte, hashtag ou légende, tendances, créateurs à suivre, grille des vidéos récentes |
+| **Créer** | Sélection d'une vidéo dans la galerie ou d'un clip de démo, légende, hashtags, aperçu, publication |
+| **Activité** | J'aime, commentaires, abonnements et mentions, avec suivi « lu / non lu » |
+| **Profil** | Statistiques, bio éditable, onglets Publications / Favoris / Aimées |
+| **Profil public** | Vidéos d'un créateur, s'abonner / se désabonner |
+| **Commentaires** | Modale, ajout, suppression de ses commentaires, j'aime sur les commentaires |
 
 ---
 
@@ -19,32 +29,27 @@ permettant de générer des APK de test.
 
 | Domaine | Outil |
 | --- | --- |
-| Framework mobile | React Native |
-| Plateforme de développement | Expo (SDK à définir) |
-| Langage | TypeScript |
-| Navigation | Expo Router *(à confirmer)* |
+| Framework mobile | React Native 0.88 |
+| Plateforme | Expo SDK 58 (New Architecture) |
+| Langage | TypeScript (strict) |
+| Navigation | Expo Router (routage par fichiers) |
+| Lecture vidéo | `expo-video` |
+| État global | Zustand |
+| Persistance | AsyncStorage |
+| Tests | Jest + jest-expo + Testing Library |
 | Build Android | EAS Build / GitHub Actions |
-| Gestionnaire de paquets | npm |
 
 ---
 
 ## Prérequis
 
-Avant de travailler sur le projet, installer :
-
-- **Node.js 20 LTS** ou supérieur — [nodejs.org](https://nodejs.org)
-- **npm 10** ou supérieur (fourni avec Node.js)
+- **Node.js 22** ou supérieur, **npm 10** ou supérieur
 - **Git**
-- Pour tester sur Android :
-  - un téléphone Android avec l'application **Expo Go**, ou
-  - **Android Studio** avec un émulateur configuré (API 34 recommandé)
-
-Vérification de l'environnement :
+- Pour tester : un téléphone Android avec **Expo Go**, ou **Android Studio** (API 34+)
 
 ```bash
 node --version
 npm --version
-git --version
 ```
 
 ---
@@ -57,28 +62,123 @@ cd AfriVibe
 npm install
 ```
 
-> Les dépendances seront installées dès que le socle Expo sera présent dans le dépôt.
+---
+
+## Lancer l'application
+
+```bash
+npm start          # serveur de développement Expo
+npm run android    # ouvre l'émulateur Android
+npm run web        # aperçu navigateur (pratique pour tester sans téléphone)
+```
+
+Puis scanner le QR code avec **Expo Go** (Android).
+
+> Astuce : `npx expo export --platform web --output-dir dist && node scripts/serve-web.mjs`
+> sert un aperçu web statique (voir [scripts/README.md](scripts/README.md)).
 
 ---
 
-## Lancer l'application en développement
+## Vérifications
 
 ```bash
-npx expo start
+npm run typecheck   # TypeScript strict
+npm run lint        # ESLint (config Expo)
+npm test            # tests Jest
+npm run test:coverage
 ```
 
-Puis :
+État actuel : **typecheck ✅**, **lint ✅ (0 erreur)**, **48 tests ✅**.
 
-- scanner le QR code avec **Expo Go** sur un appareil Android ;
-- ou appuyer sur `a` pour ouvrir l'émulateur Android.
+---
+
+## Ce qui fonctionne réellement
+
+- ✅ **Fil vertical** paginé, lecture automatique de la page visible, pause au toucher,
+  coupure du son, barre de progression.
+- ✅ **J'aime** : compteur et état persistés, mis à jour dans le fil, le profil et la
+  grille ; onglet « Aimées ».
+- ✅ **Favoris** : enregistrés, visibles dans l'onglet « Favoris » du profil.
+- ✅ **Commentaires** : ajout, suppression (uniquement les siens), j'aime sur commentaire,
+  compteurs synchronisés.
+- ✅ **Abonnements** : abonner / désabonner, compteurs des deux profils, fil
+  « Abonnements » filtré.
+- ✅ **Recherche** : comptes, hashtags, légendes, sons ; tendances calculées sur les
+  données réelles.
+- ✅ **Création** : choix d'une vidéo (galerie ou démo), copie dans le stockage de
+  l'application, légende + hashtags, publication en tête du fil et du profil.
+- ✅ **Édition du profil** : nom affiché et bio persistés.
+- ✅ **Données de démo réinitialisables** depuis le profil.
+
+## Limites (assumées et visibles dans l'interface)
+
+- ❌ **Pas d'authentification** : un profil de démonstration unique (`@amina.dkr`).
+- ❌ **Pas d'upload serveur** : une vidéo publiée reste sur l'appareil (elle n'est pas
+  visible par d'autres utilisateurs). Un encart l'indique sur l'écran « Créer ».
+- ⚠️ **Partage** : ouvre la feuille de partage Android et incrémente le compteur, mais
+  aucune URL publique n'existe encore.
+- ⚠️ **Notifications** : jeu de démonstration local, pas de temps réel.
+- ❌ **Messages privés** : non implémentés (aucun bouton décoratif n'est affiché).
+
+Détail complet et plan de branchement : [docs/BACKEND.md](docs/BACKEND.md).
+
+---
+
+## Structure du dépôt
+
+```text
+AfriVibe/
+├── app/                    Écrans (Expo Router)
+│   ├── (tabs)/             Accueil, Découvrir, Créer, Activité, Profil
+│   ├── video/[videoId].tsx Lecture plein écran
+│   ├── user/[username].tsx Profil public
+│   ├── comments/           Modale de commentaires
+│   └── edit-profile.tsx    Édition du profil
+├── src/
+│   ├── components/         UI réutilisable (ui, feed, comments, profile, search, create)
+│   ├── constants/          Thème, médias embarqués
+│   ├── data/               Contrats + source locale + adaptateur Supabase
+│   ├── features/           Recherche, publication
+│   ├── hooks/              Hooks partagés
+│   ├── store/              État global Zustand
+│   ├── types/              Entités du domaine
+│   └── utils/              Formatage, identifiants
+├── assets/                 Icônes + 6 vidéos de démonstration (posters inclus)
+├── docs/                   ARCHITECTURE.md, BACKEND.md
+├── supabase/               Schéma SQL prévu (non utilisé)
+├── scripts/                Serveur d'aperçu web, génération des vidéos
+├── .github/workflows/      CI + build APK manuel (EAS)
+├── app.json                Configuration Expo
+├── eas.json                Profils de build
+└── package.json
+```
+
+Architecture détaillée : [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
 ## Générer un APK de test
 
-Deux approches sont prévues :
+> ⚠️ Aucun build n'est lancé automatiquement dans cette version. Les configurations
+> ci-dessous sont prêtes mais doivent être déclenchées manuellement.
 
-### 1. Build local (Android SDK requis)
+### Option 1 — EAS Build (recommandé)
+
+```bash
+npm install -g eas-cli
+eas login
+eas init                       # lie le projet à votre compte Expo
+eas build --platform android --profile preview
+```
+
+Le profil `preview` de `eas.json` produit directement un **APK**.
+
+### Option 2 — GitHub Actions (manuel)
+
+Le workflow `.github/workflows/android-preview.yml` se lance depuis l'onglet **Actions**
+(« APK de test (EAS) » → *Run workflow*). Il nécessite le secret `EXPO_TOKEN`.
+
+### Option 3 — Build local
 
 ```bash
 npx expo prebuild --platform android
@@ -87,75 +187,29 @@ cd android && ./gradlew assembleRelease
 
 L'APK est produit dans `android/app/build/outputs/apk/release/`.
 
-### 2. Build automatisé avec EAS
-
-```bash
-npm install -g eas-cli
-eas login
-eas build --platform android --profile preview
-```
-
-Un lien de téléchargement de l'APK est fourni à la fin du build.
-
-### 3. Build automatisé avec GitHub Actions
-
-Un workflow de compilation sera ajouté dans `.github/workflows/` afin de produire un APK
-à chaque version publiée. L'artefact sera téléchargeable depuis l'onglet **Actions** du
-dépôt.
-
----
-
-## Structure du dépôt
-
-État actuel :
-
-```text
-AfriVibe/
-├── README.md      # Présentation du projet
-├── .gitignore     # Fichiers exclus du versionnement
-└── LICENSE        # Licence MIT
-```
-
-Cible à venir :
-
-```text
-AfriVibe/
-├── app/                 # Écrans et navigation (Expo Router)
-├── assets/              # Images, polices, sons
-├── components/          # Composants réutilisables
-├── constants/           # Thème, couleurs, configuration
-├── hooks/               # Hooks personnalisés
-├── services/            # Accès aux données et aux API
-├── types/               # Types TypeScript partagés
-├── app.json             # Configuration Expo
-├── eas.json             # Profils de build EAS
-├── tsconfig.json        # Configuration TypeScript
-└── package.json
-```
-
 ---
 
 ## Feuille de route
 
-- [x] Création du dépôt et de la documentation
-- [ ] Initialisation du projet Expo + TypeScript
-- [ ] Conception des écrans principaux
-- [ ] Intégration des données et des services
-- [ ] Configuration de la génération d'APK (EAS + GitHub Actions)
-- [ ] Publication d'une version de test
+- [x] Dépôt, documentation, licence MIT
+- [x] Socle Expo + TypeScript
+- [x] Fil vertical, lecture vidéo, likes, commentaires, favoris, abonnements
+- [x] Recherche, profils, création de publication
+- [x] Tests automatisés et configuration de build
+- [ ] Backend Supabase (authentification, stockage, temps réel)
+- [ ] Upload réel des vidéos
+- [ ] Première build APK de test
 
 ---
 
 ## Contribution
 
-Les contributions sont les bienvenues. Pour proposer une modification :
-
 1. créer une branche depuis `main` ;
-2. effectuer les changements et les tester ;
+2. `npm ci`, puis `npm run typecheck && npm run lint && npm test` ;
 3. ouvrir une **pull request** en décrivant la modification.
 
 ---
 
 ## Licence
 
-Ce projet est distribué sous licence **MIT**. Voir le fichier [LICENSE](LICENSE).
+Distribué sous licence **MIT**. Voir [LICENSE](LICENSE).

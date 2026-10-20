@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Vérifications (types, lint, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Vérifier les types TypeScript
+        run: npm run typecheck
+
+      - name: Linter
+        run: npm run lint
+
+      - name: Tests unitaires
+        run: npm test -- --ci --coverage=false
+
+      - name: Vérifier que le bundle Metro se construit
+        run: npx expo export --platform android --output-dir /tmp/afrivibe-export

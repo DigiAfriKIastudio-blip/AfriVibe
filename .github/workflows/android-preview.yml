@@ -1,0 +1,52 @@
+name: APK de test (EAS)
+
+# Déclenchement MANUEL uniquement : aucun build n'est lancé automatiquement.
+# Prérequis :
+#   1. créer un compte Expo et lier le projet : `npx eas init`
+#   2. ajouter le secret de dépôt EXPO_TOKEN
+#      (Settings → Secrets and variables → Actions → New repository secret)
+#   3. lancer ce workflow depuis l'onglet « Actions » → « Run workflow »
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "Profil EAS (preview = APK, development = client de dev)"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - development
+
+jobs:
+  build:
+    name: Build Android (${{ inputs.profile }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Installer EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Lancer le build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Secret EXPO_TOKEN manquant. Ajoutez-le dans les paramètres du dépôt."
+            exit 1
+          fi
+          eas build --platform android --profile "${{ inputs.profile }}" --non-interactive --no-wait
