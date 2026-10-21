@@ -276,21 +276,31 @@ const notifications: AppNotification[] = [
   },
 ];
 
-/** Construit une base locale neuve (démo). */
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+/**
+ * Construit une base locale neuve (démo).
+ *
+ * Les tableaux du module sont **clonés** : sans cela, une publication ou un
+ * « j'aime » modifierait les données de référence en mémoire, et une
+ * réinitialisation rendrait une base déjà polluée par la session courante.
+ */
 export function createSeedDatabase(): LocalDatabase {
   return {
     version: SEED_VERSION,
     currentProfileId: 'p_amina',
-    profiles,
-    videos,
-    comments,
+    profiles: clone(profiles),
+    videos: clone(videos),
+    comments: clone(comments),
     interactions: {
       likedVideoIds: ['v_3', 'v_5'],
       savedVideoIds: ['v_1'],
       followingIds: ['p_koffi', 'p_zola'],
       likedCommentIds: ['c_1'],
     },
-    notifications,
+    notifications: clone(notifications),
   };
 }
 
