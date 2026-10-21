@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
+import { STARTUP_TIMEOUTS } from '@/constants/startup';
 import { getDataSource } from '@/data';
+import { loadStartupSnapshot } from '@/features/startup/loadSnapshot';
 import type {
   AppNotification,
   Comment,
@@ -10,6 +12,7 @@ import type {
   UserInteractions,
   Video,
 } from '@/types/entities';
+import { withTimeout } from '@/utils/async';
 
 /**
  * État applicatif global.
@@ -80,6 +83,12 @@ function errorMessage(error: unknown): string {
   return 'Une erreur inattendue est survenue.';
 }
 
+/**
+ * Hydratation en cours, partagée entre les appels : `hydrate()` est idempotent
+ * tant que le chargement n'est pas terminé.
+ */
+let hydrationInFlight: Promise<void> | null = null;
+
 export const useAppStore = create<AppState>()((set, get) => ({
   status: 'loading',
   error: null,
@@ -95,32 +104,53 @@ export const useAppStore = create<AppState>()((set, get) => ({
   notifications: [],
 
   hydrate: async () => {
-    const dataSource = getDataSource();
+    // Single-flight : un double montage (StrictMode, navigation) ne doit pas
+    // lancer deux hydratations concurrentes.
+    if (hydrationInFlight) {
+      return hydrationInFlight;
+    }
+
     set({ status: 'loading', error: null });
 
-    try {
-      const [currentProfileId, profiles, feedPage, interactions, notifications] = await Promise.all([
-        dataSource.session.getCurrentProfileId(),
-        dataSource.profiles.list(),
-        dataSource.videos.listFeed(),
-        dataSource.interactions.get(),
-        dataSource.notifications.list(),
-      ]);
+    hydrationInFlight = (async () => {
+      try {
+        // Borne globale : même si une implémentation de `DataSource` ignore
+        // les délais par section, l'hydratation se termine toujours.
+        const { snapshot, complete } = await withTimeout(
+          loadStartupSnapshot(getDataSource()),
+          STARTUP_TIMEOUTS.hydration,
+          'Démarrage d’AfriVibe'
+        );
 
-      set({
-        status: 'ready',
-        currentProfileId,
-        profiles: toRecord(profiles),
-        videos: toRecord(feedPage.items),
-        feedOrder: feedPage.items.map((video) => video.id),
-        feedCursor: feedPage.nextCursor,
-        interactions,
-        notifications,
-      });
-    } catch (error) {
-      console.warn('[AfriVibe] Hydratation impossible :', error);
-      set({ status: 'error', error: errorMessage(error) });
-    }
+        if (!snapshot.profiles.length && !snapshot.videos.length) {
+          set({
+            status: 'error',
+            error: 'Les données locales n’ont pas pu être chargées. Vos données ont été conservées.',
+          });
+          return;
+        }
+
+        set({
+          status: 'ready',
+          error: null,
+          currentProfileId: snapshot.currentProfileId,
+          profiles: toRecord(snapshot.profiles),
+          videos: toRecord(snapshot.videos),
+          feedOrder: snapshot.videos.map((video) => video.id),
+          feedCursor: snapshot.nextCursor,
+          interactions: snapshot.interactions,
+          notifications: snapshot.notifications,
+          ...(complete ? {} : { toast: 'Certaines données n’ont pas pu être chargées' }),
+        });
+      } catch (error) {
+        console.warn('[AfriVibe] Hydratation impossible :', error);
+        set({ status: 'error', error: errorMessage(error) });
+      }
+    })().finally(() => {
+      hydrationInFlight = null;
+    });
+
+    return hydrationInFlight;
   },
 
   refreshFeed: async () => {

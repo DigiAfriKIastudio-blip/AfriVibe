@@ -1,10 +1,12 @@
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { bundledMediaKeys, getBundledVideoModule } from '@/constants/media';
+import { PUBLISH_TIMEOUTS } from '@/constants/startup';
 import { useAppStore } from '@/store/appStore';
+import { withTimeout } from '@/utils/async';
 import { normalizeTag } from '@/utils/format';
 
 /** Vidéo prête à être publiée (fichier déjà copié dans le stockage de l'app). */
@@ -24,16 +26,27 @@ function sanitizeFileName(name: string): string {
  * Copie la vidéo choisie dans le répertoire documents de l'application :
  * le fichier reste lisible après un redémarrage (un URI de cache peut expirer).
  */
+async function persistVideoFileOnce(uri: string, fileName: string): Promise<string> {
+  const directory = `${FileSystem.documentDirectory ?? ''}videos/`;
+  const info = await FileSystem.getInfoAsync(directory);
+  if (!info.exists) {
+    await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+  }
+  const target = `${directory}${Date.now()}-${sanitizeFileName(fileName)}`;
+  await FileSystem.copyAsync({ from: uri, to: target });
+  return target;
+}
+
 async function persistVideoFile(uri: string, fileName: string): Promise<string> {
   try {
-    const directory = `${FileSystem.documentDirectory ?? ''}videos/`;
-    const info = await FileSystem.getInfoAsync(directory);
-    if (!info.exists) {
-      await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
-    }
-    const target = `${directory}${Date.now()}-${sanitizeFileName(fileName)}`;
-    await FileSystem.copyAsync({ from: uri, to: target });
-    return target;
+    // Une copie de fichier peut rester bloquée (fichier distant, stockage
+    // plein, permission révoquée) : on borne l'attente pour ne jamais figer
+    // l'écran de création.
+    return await withTimeout(
+      persistVideoFileOnce(uri, fileName),
+      PUBLISH_TIMEOUTS.fileCopy,
+      'Copie de la vidéo'
+    );
   } catch (error) {
     console.warn('[AfriVibe] Copie de la vidéo impossible, utilisation de l’URI source :', error);
     return uri;
@@ -58,6 +71,9 @@ export function useVideoPublisher() {
   const [picked, setPicked] = useState<PickedVideo | null>(null);
   const [isPicking, setIsPicking] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  // Verrou synchrone : deux appuis rapides sur « Publier » ne doivent pas
+  // créer deux publications.
+  const publishingRef = useRef(false);
 
   const pickFromLibrary = async (): Promise<PickedVideo | null> => {
     setIsPicking(true);
@@ -119,7 +135,11 @@ export function useVideoPublisher() {
 
     try {
       const asset = Asset.fromModule(module);
-      await asset.downloadAsync();
+      await withTimeout(
+        asset.downloadAsync(),
+        PUBLISH_TIMEOUTS.demoDownload,
+        'Préparation de la vidéo de démo'
+      );
       const localUri = asset.localUri ?? asset.uri;
       const uri = await persistVideoFile(localUri, `${key}.mp4`);
       const value: PickedVideo = {
@@ -148,7 +168,11 @@ export function useVideoPublisher() {
       showToast('Ajoutez une légende');
       return false;
     }
+    if (publishingRef.current) {
+      return false;
+    }
 
+    publishingRef.current = true;
     setIsPublishing(true);
     try {
       const cleanedTags = Array.from(new Set(tags.map(normalizeTag).filter(Boolean)));
@@ -164,6 +188,7 @@ export function useVideoPublisher() {
       setPicked(null);
       return true;
     } finally {
+      publishingRef.current = false;
       setIsPublishing(false);
     }
   };

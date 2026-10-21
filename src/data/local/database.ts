@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { STARTUP_TIMEOUTS } from '@/constants/startup';
+import { isTimeoutError, withTimeout } from '@/utils/async';
+
 import { createSeedDatabase, SEED_VERSION } from './seed';
 import type { LocalDatabase } from './types';
 
@@ -10,6 +13,15 @@ import type { LocalDatabase } from './types';
  *   avec les données de démonstration.
  * - Chaque mutation est réécrite de façon groupée pour éviter les écritures
  *   en rafale (ex. double-tap sur « j'aime »).
+ *
+ * Robustesse au démarrage :
+ * - la lecture est bornée dans le temps (`STARTUP_TIMEOUTS.databaseRead`) :
+ *   un stockage natif muet ne bloque plus l'application ;
+ * - le chargement est « single-flight » : les cinq sections chargées en
+ *   parallèle au démarrage ne déclenchent qu'une seule lecture ;
+ * - si la lecture échoue, on bascule sur les données de démo **en mémoire**
+ *   sans jamais réécrire le stockage : les données locales existantes
+ *   (commentaires, favoris, abonnements, publications) sont préservées.
  */
 
 export const STORAGE_KEY = 'afrivibe:db:v1';
@@ -19,6 +31,19 @@ const WRITE_DEBOUNCE_MS = 200;
 let cache: LocalDatabase | null = null;
 let writeTimer: ReturnType<typeof setTimeout> | null = null;
 let pendingWrite: Promise<void> = Promise.resolve();
+let pendingLoad: Promise<LocalDatabase> | null = null;
+
+/**
+ * `true` quand le stockage n'a pas pu être lu dans le délai imparti. Dans ce
+ * mode, les écritures sont désactivées pour ne pas écraser des données
+ * locales qui sont peut-être intactes mais simplement lentes à lire.
+ */
+let storageDegraded = false;
+
+/** Indique si la session courante tourne sur un stockage non fiable. */
+export function isLocalStorageDegraded(): boolean {
+  return storageDegraded;
+}
 
 function isLocalDatabase(value: unknown): value is LocalDatabase {
   if (typeof value !== 'object' || value === null) {
@@ -37,29 +62,70 @@ function isLocalDatabase(value: unknown): value is LocalDatabase {
   );
 }
 
-/** Charge la base (mémoire → AsyncStorage → données de démo). */
-export async function loadDatabase(): Promise<LocalDatabase> {
+/**
+ * Charge la base (mémoire → AsyncStorage → données de démo).
+ *
+ * Ne rejette jamais : en cas d'échec du stockage, une base de démonstration en
+ * mémoire est renvoyée afin que l'application puisse démarrer.
+ */
+export function loadDatabase(): Promise<LocalDatabase> {
   if (cache) {
-    return cache;
+    return Promise.resolve(cache);
   }
+  if (!pendingLoad) {
+    pendingLoad = loadDatabaseOnce().finally(() => {
+      pendingLoad = null;
+    });
+  }
+  return pendingLoad;
+}
+
+async function loadDatabaseOnce(): Promise<LocalDatabase> {
+  let raw: string | null = null;
+  let readFailed = false;
 
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    if (raw) {
+    raw = await withTimeout(
+      AsyncStorage.getItem(STORAGE_KEY),
+      STARTUP_TIMEOUTS.databaseRead,
+      'Lecture de la base locale'
+    );
+  } catch (error) {
+    readFailed = true;
+    storageDegraded = true;
+    console.warn(
+      `[AfriVibe] Lecture de la base locale impossible (${isTimeoutError(error) ? 'délai dépassé' : 'erreur'}) :`,
+      error
+    );
+  }
+
+  if (typeof raw === 'string' && raw.length > 0) {
+    try {
       const parsed: unknown = JSON.parse(raw);
       if (isLocalDatabase(parsed)) {
         cache = parsed;
         return cache;
       }
       console.warn('[AfriVibe] Base locale incompatible : réinitialisation.');
+    } catch (error) {
+      console.warn('[AfriVibe] Base locale illisible : réinitialisation.', error);
     }
-  } catch (error) {
-    console.warn('[AfriVibe] Lecture de la base locale impossible :', error);
   }
 
-  cache = createSeedDatabase();
-  await writeNow(cache);
-  return cache;
+  const seed = createSeedDatabase();
+  cache = seed;
+
+  if (!readFailed) {
+    // Premier lancement (ou base incompatible) : on initialise le stockage.
+    await writeNow(seed);
+  } else {
+    console.warn(
+      '[AfriVibe] Stockage indisponible : démarrage sur les données de démo, écritures suspendues ' +
+        'pour préserver les données locales.'
+    );
+  }
+
+  return seed;
 }
 
 /** Accès synchrone à la base déjà chargée (usage interne). */
@@ -71,12 +137,30 @@ export function getDatabase(): LocalDatabase {
 }
 
 async function writeNow(db: LocalDatabase): Promise<void> {
-  const serialized = JSON.stringify(db);
+  if (storageDegraded) {
+    return;
+  }
+
+  let serialized: string;
+  try {
+    serialized = JSON.stringify(db);
+  } catch (error) {
+    console.warn('[AfriVibe] Sérialisation de la base locale impossible :', error);
+    return;
+  }
+
   pendingWrite = pendingWrite
-    .then(() => AsyncStorage.setItem(STORAGE_KEY, serialized))
+    .then(() =>
+      withTimeout(
+        AsyncStorage.setItem(STORAGE_KEY, serialized),
+        STARTUP_TIMEOUTS.databaseWrite,
+        'Écriture de la base locale'
+      )
+    )
     .catch((error: unknown) => {
       console.warn('[AfriVibe] Écriture de la base locale impossible :', error);
     });
+
   return pendingWrite;
 }
 
@@ -105,6 +189,9 @@ export async function flushDatabase(): Promise<void> {
 /** Réinitialise complètement la base locale (profil de démo). */
 export async function resetDatabase(): Promise<LocalDatabase> {
   cache = createSeedDatabase();
+  // Action explicite de l'utilisateur : on retente l'écriture même si la
+  // session était en mode dégradé.
+  storageDegraded = false;
   await writeNow(cache);
   return cache;
 }
@@ -112,6 +199,8 @@ export async function resetDatabase(): Promise<LocalDatabase> {
 /** Réservé aux tests : vide le cache mémoire et annule les écritures. */
 export function __resetDatabaseForTests(): void {
   cache = null;
+  pendingLoad = null;
+  storageDegraded = false;
   if (writeTimer) {
     clearTimeout(writeTimer);
     writeTimer = null;

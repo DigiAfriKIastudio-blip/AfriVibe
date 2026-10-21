@@ -85,11 +85,37 @@ Règles respectées par les implémentations :
 - sélecteurs dérivés : `selectVideosByAuthor`, `selectSavedVideos`, `selectLikedVideos`,
   `selectIsLiked`, `selectIsSaved`, `selectIsFollowing`, `selectUnreadNotificationCount`
 
+## Démarrage et résilience
+
+Le démarrage est conçu pour **toujours se terminer** (voir
+`docs/DIAGNOSTIC-DEMARRAGE.md`) :
+
+```text
+splash natif            preventAutoHideAsync (portée module) → hideAsync au montage
+                        + masquage de secours (4 s)
+        ↓
+loadStartupSnapshot()   5 sections en parallèle, 6 s maximum chacune
+        ↓
+hydrate (store)         plafond global 9 s, single-flight, résultat partiel accepté
+        ↓
+status                  ready → navigation
+                        error → écran « Démarrage impossible » + « Réessayer »
+```
+
+- Bornes de temps centralisées dans `src/constants/startup.ts`.
+- `src/utils/async.ts` fournit `withTimeout` / `settleWithTimeout` (aucune promesse non
+  bornée, aucun rejet non géré).
+- `src/data/local/database.ts` est **single-flight** et bascule en mode dégradé (données de
+  démo en mémoire, écritures suspendues) si `AsyncStorage` ne répond pas : les données
+  déjà stockées ne sont jamais écrasées.
+- `src/components/system/ErrorBoundary.tsx` capture les erreurs de rendu et propose une
+  reprise, au lieu de laisser un écran vide ou un logo figé.
+
 ## Navigation (Expo Router)
 
 ```text
 app/
-  _layout.tsx              Stack racine + hydratation + Toast
+  _layout.tsx              ErrorBoundary + splash + hydratation bornée + Stack + Toast
   (tabs)/
     _layout.tsx            Onglets : Accueil, Découvrir, Créer, Activité, Profil
     index.tsx              Fil vertical (Pour toi / Abonnements)
@@ -122,6 +148,8 @@ l'application, le fil fonctionne donc hors ligne.
 - tests d'intégration de la couche locale (pagination, likes, favoris, abonnements,
   commentaires, publication, persistance après rechargement)
 - tests du store et de composants (rendu, interactions, états vides)
+- tests de résilience du démarrage (stockage muet, E/S figées, `ErrorBoundary`,
+  splash, reprise après échec) — voir `docs/DIAGNOSTIC-DEMARRAGE.md`
 
 Lancer : `npm test`.
 
