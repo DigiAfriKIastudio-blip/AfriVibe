@@ -24,6 +24,8 @@ export interface Profile {
   displayName: string;
   bio: string;
   avatarColor: string;
+  /** URI locale persistante de la photo de profil, si l'utilisateur en a choisi une. */
+  avatarUri?: string | null;
   isVerified: boolean;
   stats: ProfileStats;
   createdAt: string;
@@ -104,4 +106,5 @@ export interface CreateVideoInput {
 export interface UpdateProfileInput {
   displayName?: string;
   bio?: string;
+  avatarUri?: string | null;
 }
