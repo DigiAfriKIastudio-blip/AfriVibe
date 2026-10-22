@@ -74,7 +74,7 @@ describe('useVideoPublisher', () => {
     jest.restoreAllMocks();
   });
 
-  it('retombe sur l’URI source si la copie du fichier dépasse le délai maximal', async () => {
+  it('refuse une vidéo si la copie vers le stockage permanent dépasse le délai maximal', async () => {
     jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'setImmediate', 'nextTick'] });
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     mockAssetDownloadAsync.mockResolvedValue();
@@ -82,18 +82,17 @@ describe('useVideoPublisher', () => {
 
     const { result } = await renderHook(() => useVideoPublisher());
 
-    let picked: unknown = null;
+    let picked: unknown = 'non-résolu';
     await act(async () => {
       const pending = result.current.pickDemoClip();
-      // `advanceTimersByTimeAsync` laisse la chaîne d'`await` créer son
-      // minuteur avant de le faire expirer.
       await jest.advanceTimersByTimeAsync(PUBLISH_TIMEOUTS.fileCopy + 1000);
       picked = await pending;
     });
 
-    expect(picked).not.toBeNull();
-    // L'URI d'origine est conservée : la publication reste possible.
-    expect(picked).toMatchObject({ uri: 'file:///cache/vibe-1.mp4' });
+    expect(picked).toBeNull();
+    expect(showToast).toHaveBeenCalledWith(
+      'Impossible de préparer la vidéo. Vérifiez l’espace disponible.'
+    );
     jest.restoreAllMocks();
   });
 
