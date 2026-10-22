@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router/js-tabs';
 import { Platform, StyleSheet, View, type ColorValue } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import { colors } from '@/constants/theme';
@@ -26,6 +27,7 @@ function TabIcon({
 /** Barre d'onglets principale. */
 export default function TabsLayout() {
   const unreadCount = useAppStore(selectUnreadNotificationCount);
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -33,7 +35,13 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.textFaint,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: [
+          styles.tabBar,
+          {
+            height: Platform.select({ ios: 84 + insets.bottom, default: 62 + insets.bottom }),
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 6,
+          },
+        ],
         tabBarLabelStyle: styles.tabLabel,
         tabBarItemStyle: styles.tabItem,
         sceneStyle: styles.scene,
