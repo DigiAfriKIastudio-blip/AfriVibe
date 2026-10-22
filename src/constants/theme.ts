@@ -9,9 +9,9 @@ export const colors = {
   overlay: 'rgba(11, 11, 15, 0.72)',
 
   // Marque
-  primary: '#FF6B35',
-  accent: '#C13BFF',
-  gradient: ['#FF6B35', '#FF3D77', '#C13BFF'] as const,
+  primary: '#D4AF37',
+  accent: '#2E8B57',
+  gradient: ['#1E3F20', '#2E8B57', '#D4AF37'] as const,
 
   // Texte
   text: '#FFFFFF',
@@ -56,12 +56,12 @@ export const fontSize = {
 
 /** Palette déterministe utilisée pour les avatars (pas de photo disponible). */
 export const avatarPalette = [
-  '#FF6B35',
-  '#FF3D77',
-  '#C13BFF',
-  '#4D6BFF',
-  '#00C2A8',
-  '#F5A623',
+  '#1E3F20',
+  '#2E8B57',
+  '#D4AF37',
+  '#477A45',
+  '#E7D7A1',
+  '#6A9F58',
 ] as const;
 
 export function avatarColorFor(seed: string): string {

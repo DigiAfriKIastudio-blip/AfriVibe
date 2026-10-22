@@ -38,19 +38,14 @@ async function persistVideoFileOnce(uri: string, fileName: string): Promise<stri
 }
 
 async function persistVideoFile(uri: string, fileName: string): Promise<string> {
-  try {
-    // Une copie de fichier peut rester bloquée (fichier distant, stockage
-    // plein, permission révoquée) : on borne l'attente pour ne jamais figer
-    // l'écran de création.
-    return await withTimeout(
-      persistVideoFileOnce(uri, fileName),
-      PUBLISH_TIMEOUTS.fileCopy,
-      'Copie de la vidéo'
-    );
-  } catch (error) {
-    console.warn('[AfriVibe] Copie de la vidéo impossible, utilisation de l’URI source :', error);
-    return uri;
-  }
+  // Une publication doit pointer vers un fichier persistant : conserver une URI
+  // temporaire de la galerie/cache peut casser la lecture après redémarrage.
+  // Le délai maximal évite de figer l'écran si la copie échoue.
+  return withTimeout(
+    persistVideoFileOnce(uri, fileName),
+    PUBLISH_TIMEOUTS.fileCopy,
+    'Copie de la vidéo'
+  );
 }
 
 interface PublishPayload {
@@ -112,7 +107,7 @@ export function useVideoPublisher() {
       return value;
     } catch (error) {
       console.warn('[AfriVibe] Sélection vidéo impossible :', error);
-      showToast('Impossible d’ouvrir la galerie');
+      showToast('Impossible de préparer la vidéo. Vérifiez l’espace disponible.');
       return null;
     } finally {
       setIsPicking(false);

@@ -74,7 +74,7 @@ describe('useVideoPublisher', () => {
     jest.restoreAllMocks();
   });
 
-  it('retombe sur l’URI source si la copie du fichier dépasse le délai maximal', async () => {
+  it('refuse une vidéo si la copie vers le stockage permanent dépasse le délai maximal', async () => {
     jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'setImmediate', 'nextTick'] });
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     mockAssetDownloadAsync.mockResolvedValue();
@@ -82,18 +82,22 @@ describe('useVideoPublisher', () => {
 
     const { result } = await renderHook(() => useVideoPublisher());
 
-    let picked: unknown = null;
+    let picked: unknown = 'non-résolu';
     await act(async () => {
       const pending = result.current.pickDemoClip();
-      // `advanceTimersByTimeAsync` laisse la chaîne d'`await` créer son
-      // minuteur avant de le faire expirer.
-      await jest.advanceTimersByTimeAsync(PUBLISH_TIMEOUTS.fileCopy + 1000);
+      // Laisser la résolution du téléchargement démarrer la copie avant
+      // d'avancer l'horloge jusqu'au délai de copie.
+      await Promise.resolve();
+      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(PUBLISH_TIMEOUTS.fileCopy + PUBLISH_TIMEOUTS.demoDownload + 1000);
       picked = await pending;
     });
 
-    expect(picked).not.toBeNull();
-    // L'URI d'origine est conservée : la publication reste possible.
-    expect(picked).toMatchObject({ uri: 'file:///cache/vibe-1.mp4' });
+    expect(picked).toBeNull();
+    // Le test vérifie surtout que l'opération bornée échoue sans conserver
+    // une URI temporaire. Selon l'ordre des microtâches Jest, l'échec peut
+    // arriver pendant le téléchargement du clip ou pendant sa copie.
+    expect(showToast).toHaveBeenCalled();
     jest.restoreAllMocks();
   });
 

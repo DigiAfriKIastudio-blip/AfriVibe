@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, AppState, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { VideoActionRail } from '@/components/feed/VideoActionRail';
@@ -36,14 +36,15 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
 
   const player = useVideoPlayer(videoSource, (instance) => {
     instance.loop = true;
-    // Les clips de démonstration ne doivent pas démarrer avec leur boucle sonore.
-    instance.muted = true;
+    // Le fil lit le son original des vidéos publiées ; l'utilisateur peut le couper.
+    instance.muted = false;
     instance.timeUpdateEventInterval = 0.25;
   });
 
+  const [appIsActive, setAppIsActive] = useState(AppState.currentState === 'active');
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [hasError, setHasError] = useState(false);
 
@@ -57,19 +58,30 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     setProgress(duration > 0 ? Math.min(1, currentTime / duration) : 0);
   });
 
-  // Lecture uniquement pour la page visible.
+  // Android peut suspendre les lecteurs quand l'utilisateur quitte l'app.
+  // Suivre l'état système évite de laisser un lecteur bloqué en pause au retour.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      setAppIsActive(nextState === 'active');
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // Une seule vidéo joue à la fois, uniquement lorsque l'app est au premier plan.
   useEffect(() => {
     if (!videoSource) {
       return;
     }
-    if (isActive) {
+    if (isActive && appIsActive) {
       player.play();
       void registerView(video.id);
     } else {
       player.pause();
+    }
+    if (!isActive) {
       player.currentTime = 0;
     }
-  }, [isActive, player, registerView, video.id, videoSource]);
+  }, [appIsActive, isActive, player, registerView, video.id, videoSource]);
 
   const togglePlayback = () => {
     if (!videoSource) {
