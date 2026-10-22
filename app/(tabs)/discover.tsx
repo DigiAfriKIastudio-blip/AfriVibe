@@ -100,7 +100,7 @@ export default function DiscoverScreen() {
               {results.tags.map((entry) => (
                 <Pressable
                   key={entry.tag}
-                  onPress={() => setQuery(entry.tag)}
+                  onPress={() => setQuery(`#${entry.tag}`)
                   style={styles.chip}
                   accessibilityRole="button"
                   accessibilityLabel={`Rechercher le hashtag ${entry.tag}`}
