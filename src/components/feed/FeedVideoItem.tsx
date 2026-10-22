@@ -36,13 +36,14 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
 
   const player = useVideoPlayer(videoSource, (instance) => {
     instance.loop = true;
-    instance.muted = false;
+    // Les clips de démonstration ne doivent pas démarrer avec leur boucle sonore.
+    instance.muted = true;
     instance.timeUpdateEventInterval = 0.25;
   });
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
   const [hasError, setHasError] = useState(false);
 
@@ -94,7 +95,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           nativeControls={false}
-          surfaceType="textureView"
+          surfaceType="surfaceView"
           accessibilityLabel={`Vidéo de ${author?.displayName ?? 'AfriVibe'}`}
         />
       ) : posterSource ? (
