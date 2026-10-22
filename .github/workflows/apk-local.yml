@@ -29,6 +29,27 @@ jobs:
           node-version: 22
           cache: npm
 
+      - name: Remplacer les clips abstraits par des séquences vidéo CC0
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          mkdir -p assets/videos
+          curl -fL --retry 3 --connect-timeout 15 --max-time 120 \\
+            'https://commons.wikimedia.org/wiki/Special:FilePath/Sc%C3%A8nes_de_rue%2C_march%C3%A9%2C_for%C3%AAt_d%C3%A9vast%C3%A9e_-_AI140403.webm' \\
+            -o /tmp/afrivibe-demo-source.webm
+          for i in 1 2 3 4 5 6; do
+            start=$(( (i - 1) * 10 ))
+            ffmpeg -hide_banner -loglevel error -ss "$start" -i /tmp/afrivibe-demo-source.webm \\
+              -t 5 -an -vf 'scale=480:854:force_original_aspect_ratio=increase,crop=480:854,fps=24,format=yuv420p' \\
+              -c:v libx264 -preset veryfast -crf 27 -movflags +faststart -y "assets/videos/vibe-$i.mp4"
+            ffmpeg -hide_banner -loglevel error -ss "$((start + 1))" -i /tmp/afrivibe-demo-source.webm \\
+              -frames:v 1 -vf 'scale=480:854:force_original_aspect_ratio=increase,crop=480:854' \\
+              -q:v 5 -y "assets/videos/vibe-$i-poster.jpg"
+          done
+          file assets/videos/vibe-*.mp4
+
       - name: Installer les dépendances JavaScript
         run: npm ci
 
