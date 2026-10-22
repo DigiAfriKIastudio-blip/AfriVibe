@@ -38,7 +38,6 @@ export default function RootLayout() {
   const status = useAppStore((state) => state.status);
   const error = useAppStore((state) => state.error);
   const hydrate = useAppStore((state) => state.hydrate);
-  const failStartupIfLoading = useAppStore((state) => state.failStartupIfLoading);
 
   useSplashGate();
 
