@@ -1,0 +1,63 @@
+name: APK local gratuit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-local-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Construire APK Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Installer les dépendances JavaScript
+        run: npm ci
+
+      - name: Vérifier TypeScript
+        run: npm run typecheck
+
+      - name: Générer le projet Android natif
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Construire l'APK release
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Vérifier le package Android et l'APK
+        run: |
+          grep -q 'com.afrivibe.app' android/app/build.gradle
+          test -s android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Publier l'APK comme artefact téléchargeable
+        uses: actions/upload-artifact@v4
+        with:
+          name: AfriVibe-${{ github.sha }}-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
