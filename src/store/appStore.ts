@@ -106,7 +106,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   failStartupIfLoading: () => {
     if (get().status === 'loading') {
-      set({ status: 'error', error: 'Le démarrage prend trop de temps. Réessayez. Si le problème revient, envoyez-nous le journal de démarrage.' });
+      set({ status: 'error', error: 'Le démarrage prend plus de temps que prévu. Réessayez. Si le problème revient, envoyez-nous le journal de démarrage.' });
     }
   },
 
