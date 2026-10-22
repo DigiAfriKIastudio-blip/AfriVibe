@@ -92,6 +92,9 @@ const profiles: ProfilesRepository = {
     if (typeof input.bio === 'string') {
       profile.bio = input.bio.trim().slice(0, 160);
     }
+    if (typeof input.avatarUri === 'string' || input.avatarUri === null) {
+      profile.avatarUri = input.avatarUri;
+    }
 
     persistDatabase(db);
     return clone(profile);

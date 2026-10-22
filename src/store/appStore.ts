@@ -46,6 +46,7 @@ export interface AppState {
   notifications: AppNotification[];
 
   hydrate: () => Promise<void>;
+  failStartupIfLoading: () => void;
   loadMoreFeed: () => Promise<void>;
   refreshFeed: () => Promise<void>;
 
@@ -102,6 +103,12 @@ export const useAppStore = create<AppState>()((set, get) => ({
   comments: {},
   interactions: EMPTY_INTERACTIONS,
   notifications: [],
+
+  failStartupIfLoading: () => {
+    if (get().status === 'loading') {
+      set({ status: 'error', error: 'Le démarrage prend plus de temps que prévu. Réessayez. Si le problème revient, envoyez-nous le journal de démarrage.' });
+    }
+  },
 
   hydrate: async () => {
     // Single-flight : un double montage (StrictMode, navigation) ne doit pas

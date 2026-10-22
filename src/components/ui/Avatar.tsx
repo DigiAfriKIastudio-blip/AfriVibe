@@ -1,11 +1,11 @@
-import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { Image, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { AppText } from '@/components/ui/AppText';
 import { colors } from '@/constants/theme';
 import type { Profile } from '@/types/entities';
 
 interface AvatarProps {
-  profile: Pick<Profile, 'displayName' | 'username' | 'avatarColor'>;
+  profile: Pick<Profile, 'displayName' | 'username' | 'avatarColor' | 'avatarUri'>;
   size?: number;
   ring?: boolean;
   style?: ViewStyle;
@@ -36,13 +36,17 @@ export function Avatar({ profile, size = 44, ring = false, style }: AvatarProps)
       ]}
       accessibilityLabel={`Avatar de ${profile.displayName}`}
     >
-      <AppText
-        weight="700"
-        style={{ fontSize: size * 0.38, color: colors.background }}
-        variant="label"
-      >
-        {initials(profile)}
-      </AppText>
+      {profile.avatarUri ? (
+        <Image source={{ uri: profile.avatarUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Photo de ${profile.displayName}`} />
+      ) : (
+        <AppText
+          weight="700"
+          style={{ fontSize: size * 0.38, color: colors.background }}
+          variant="label"
+        >
+          {initials(profile)}
+        </AppText>
+      )}
     </View>
   );
 }
