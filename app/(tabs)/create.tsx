@@ -66,8 +66,12 @@ export default function CreateScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerRow}>
-          <AppText variant="title">Créer</AppText>
+        <View style={styles.hero}>
+          <View style={styles.heroMark}><Icon name="videocam" size={24} color={colors.background} /></View>
+          <View style={styles.heroCopy}>
+            <AppText variant="title">Crée ton moment</AppText>
+            <AppText variant="caption" color={colors.textMuted}>Une vidéo, une histoire, toute l’Afrique à découvrir.</AppText>
+          </View>
           {picked ? (
             <Pressable
               onPress={clearPicked}
@@ -92,10 +96,8 @@ export default function CreateScreen() {
           </View>
         ) : (
           <View style={styles.pickerZone}>
-            <Icon name="videocam-outline" size={40} color={colors.textMuted} />
-            <AppText variant="subtitle" align="center">
-              Choisissez une vidéo
-            </AppText>
+            <View style={styles.uploadIcon}><Icon name="cloud-upload-outline" size={34} color={colors.primary} /></View>
+            <AppText variant="subtitle" align="center">Ta prochaine vidéo commence ici</AppText>
             <AppText variant="body" color={colors.textMuted} align="center">
               Depuis la galerie de votre téléphone, ou utilisez une vidéo de démonstration
               embarquée.
@@ -123,6 +125,7 @@ export default function CreateScreen() {
           </View>
         )}
 
+        <View style={styles.sectionHeading}><View style={styles.stepBadge}><AppText variant="caption" weight="700">01</AppText></View><View style={styles.stepCopy}><AppText variant="subtitle">Raconte ton histoire</AppText><AppText variant="caption" color={colors.textMuted}>Ajoute une légende qui donne envie de regarder.</AppText></View></View>
         <View style={styles.field}>
           <AppText variant="label" weight="700">
             Légende
@@ -142,6 +145,7 @@ export default function CreateScreen() {
           </AppText>
         </View>
 
+        <View style={styles.sectionHeading}><View style={styles.stepBadge}><AppText variant="caption" weight="700">02</AppText></View><View style={styles.stepCopy}><AppText variant="subtitle">Ajoute des hashtags</AppText><AppText variant="caption" color={colors.textMuted}>Aide les autres à découvrir ta vidéo.</AppText></View></View>
         <View style={styles.field}>
           <AppText variant="label" weight="700">
             Hashtags
@@ -198,11 +202,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     gap: spacing.lg,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.xl, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  heroMark: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  heroCopy: { flex: 1, gap: 4 },
+  sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: -spacing.sm },
+  stepBadge: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
+  stepCopy: { flex: 1, gap: 2 },
+  uploadIcon: { width: 68, height: 68, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,107,53,0.13)', marginBottom: spacing.xs },
   pickerZone: {
     alignItems: 'center',
     justifyContent: 'center',
