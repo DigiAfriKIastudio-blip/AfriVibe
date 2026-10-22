@@ -1,5 +1,4 @@
 import { useEventListener } from 'expo';
-import { useIsFocused } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -31,7 +30,6 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
   const author = useAppStore((state) => state.profiles[video.authorId]);
   const registerView = useAppStore((state) => state.registerView);
   const insets = useSafeAreaInsets();
-  const isScreenFocused = useIsFocused();
 
   const videoSource = useMemo(() => resolveVideoSource(video.video), [video.video]);
   const posterSource = useMemo(() => resolvePosterSource(video.poster), [video.poster]);
@@ -76,7 +74,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     if (!videoSource) {
       return;
     }
-    if (isActive && appIsActive && isScreenFocused) {
+    if (isActive && appIsActive) {
       player.play();
       void registerView(video.id);
     } else {
@@ -85,7 +83,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     if (!isActive) {
       player.currentTime = 0;
     }
-  }, [appIsActive, isActive, isScreenFocused, player, registerView, video.id, videoSource]);
+  }, [appIsActive, isActive, player, registerView, video.id, videoSource]);
 
   const togglePlayback = () => {
     if (!videoSource) {
