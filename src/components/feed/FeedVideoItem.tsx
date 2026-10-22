@@ -1,4 +1,5 @@
 import { useEventListener } from 'expo';
+import { useIsFocused } from 'expo-router';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
@@ -30,6 +31,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
   const author = useAppStore((state) => state.profiles[video.authorId]);
   const registerView = useAppStore((state) => state.registerView);
   const insets = useSafeAreaInsets();
+  const isScreenFocused = useIsFocused();
 
   const videoSource = useMemo(() => resolveVideoSource(video.video), [video.video]);
   const posterSource = useMemo(() => resolvePosterSource(video.poster), [video.poster]);
@@ -38,7 +40,9 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     instance.loop = true;
     // Le fil lit le son original des vidéos publiées ; l'utilisateur peut le couper.
     instance.muted = false;
-    instance.timeUpdateEventInterval = 0.25;
+    // Une mise à jour par seconde suffit à la barre de progression et réduit
+    // les rendus React inutiles sur les téléphones Android modestes.
+    instance.timeUpdateEventInterval = 1;
   });
 
   const [appIsActive, setAppIsActive] = useState(AppState.currentState === 'active');
@@ -72,7 +76,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     if (!videoSource) {
       return;
     }
-    if (isActive && appIsActive) {
+    if (isActive && appIsActive && isScreenFocused) {
       player.play();
       void registerView(video.id);
     } else {
@@ -81,7 +85,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     if (!isActive) {
       player.currentTime = 0;
     }
-  }, [appIsActive, isActive, player, registerView, video.id, videoSource]);
+  }, [appIsActive, isActive, isScreenFocused, player, registerView, video.id, videoSource]);
 
   const togglePlayback = () => {
     if (!videoSource) {
