@@ -4,17 +4,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: apk-local-build
-  cancel-in-progress: false
+  group: apk-local-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-apk:
     name: Construire APK Android
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Récupérer le dépôt
@@ -26,19 +26,6 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Installer Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Préparer Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Installer les dépendances Android
-        run: |
-          sdkmanager "platform-tools" "platforms;android-37" "build-tools;37.0.0" "ndk;27.1.12297006"
-
       - name: Installer les dépendances JavaScript
         run: npm ci
 
@@ -48,30 +35,29 @@ jobs:
       - name: Générer le projet Android natif
         run: npx expo prebuild --platform android --no-install
 
+      - name: Installer Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+          cache-dependency-path: android/gradle/wrapper/gradle-wrapper.properties
+
       - name: Construire l'APK release
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
-      - name: Vérifier que l'APK existe
-        run: test -s android/app/build/outputs/apk/release/app-release.apk
+      - name: Vérifier le package Android et l'APK
+        run: |
+          grep -q 'applicationId "com.afrivibe.app"' android/app/build.gradle || grep -q 'applicationId = "com.afrivibe.app"' android/app/build.gradle
+          test -s android/app/build/outputs/apk/release/app-release.apk
 
-      - name: Publier l'APK comme artefact
+      - name: Publier l'APK comme artefact téléchargeable
         uses: actions/upload-artifact@v4
         with:
-          name: AfriVibe-Android-APK
+          name: AfriVibe-${{ github.sha }}-apk
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
-
-      - name: Publier une release GitHub téléchargeable
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-local-${{ github.run_number }}
-          name: AfriVibe APK - build ${{ github.run_number }}
-          body: |
-            APK Android généré par GitHub Actions pour test.
-            Cette version est signée avec la clé de débogage et n'est pas destinée à une publication Play Store.
-          files: android/app/build/outputs/apk/release/app-release.apk
-          generate_release_notes: false
