@@ -1,5 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -28,16 +30,44 @@ export default function EditProfileScreen() {
 
   const [displayName, setDisplayName] = useState(me?.displayName ?? '');
   const [bio, setBio] = useState(me?.bio ?? '');
+  const [avatarUri, setAvatarUri] = useState(me?.avatarUri ?? null);
+  const [isPickingPhoto, setIsPickingPhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const canSave = displayName.trim().length > 0 && !isSaving;
+
+  const handlePickPhoto = async () => {
+    setIsPickingPhoto(true);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) return;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const source = result.assets[0].uri;
+      const directory = `${FileSystem.documentDirectory ?? ''}profile/`;
+      const info = await FileSystem.getInfoAsync(directory);
+      if (!info.exists) await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+      const destination = `${directory}avatar-${Date.now()}.jpg`;
+      await FileSystem.copyAsync({ from: source, to: destination });
+      setAvatarUri(destination);
+    } catch (error) {
+      console.warn('[AfriVibe] Photo de profil impossible à sélectionner :', error);
+    } finally {
+      setIsPickingPhoto(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!canSave) {
       return;
     }
     setIsSaving(true);
-    await updateProfile({ displayName, bio });
+    await updateProfile({ displayName, bio, avatarUri });
     setIsSaving(false);
     router.back();
   };
@@ -65,9 +95,10 @@ export default function EditProfileScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {me ? (
           <View style={styles.avatarRow}>
-            <Avatar profile={{ ...me, displayName: displayName || me.displayName }} size={80} />
+            <Avatar profile={{ ...me, displayName: displayName || me.displayName, avatarUri }} size={88} />
+            <Button label={isPickingPhoto ? 'Ouverture de la galerie…' : 'Changer la photo'} variant="secondary" compact onPress={() => void handlePickPhoto()} disabled={isPickingPhoto} icon="image-outline" />
             <AppText variant="caption" color={colors.textFaint} align="center">
-              L’avatar est généré à partir de vos initiales.
+              Choisis une photo carrée dans ta galerie. Elle sera conservée sur cet appareil.
             </AppText>
           </View>
         ) : null}
