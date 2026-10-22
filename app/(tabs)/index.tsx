@@ -65,9 +65,16 @@ export default function FeedScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]} pointerEvents="box-none">
         <View style={styles.headerRow}>
-          <AppText variant="subtitle" weight="800" style={styles.brand}>
-            AfriVibe
-          </AppText>
+          <View style={styles.brandLockup}>
+            <View style={styles.brandMark}>
+              <AppText variant="subtitle" weight="900" style={styles.brandMarkText}>
+                A
+              </AppText>
+            </View>
+            <AppText variant="subtitle" weight="800" style={styles.brand}>
+              AfriVibe
+            </AppText>
+          </View>
           <View style={styles.switcher}>
             <Pressable
               onPress={() => setScope('forYou')}
@@ -120,6 +127,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  brandLockup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  brandMark: {
+    width: 32,
+    height: 32,
+    borderRadius: 11,
+    backgroundColor: '#1E3F20',
+    borderWidth: 1,
+    borderColor: '#D4AF37',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandMarkText: {
+    color: '#D4AF37',
+    fontSize: 18,
+    lineHeight: 22,
   },
   brand: {
     textShadowColor: 'rgba(0,0,0,0.5)',
