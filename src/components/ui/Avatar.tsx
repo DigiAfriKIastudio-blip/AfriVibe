@@ -37,15 +37,15 @@ export function Avatar({ profile, size = 44, ring = false, style }: AvatarProps)
       accessibilityLabel={`Avatar de ${profile.displayName}`}
     >
       {profile.avatarUri ? (
-        <Image source={{ uri: profile.avatarUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" accessibilityLabel={`Photo de ${profile.displayName}`} />
+        <Image source={{ uri: profile.avatarUri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Photo de ${profile.displayName}`} />
       ) : (
-      <AppText
-        weight="700"
-        style={{ fontSize: size * 0.38, color: colors.background }}
-        variant="label"
-      >
-        {initials(profile)}
-      </AppText>
+        <AppText
+          weight="700"
+          style={{ fontSize: size * 0.38, color: colors.background }}
+          variant="label"
+        >
+          {initials(profile)}
+        </AppText>
       )}
     </View>
   );
