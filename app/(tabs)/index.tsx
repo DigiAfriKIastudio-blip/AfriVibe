@@ -67,7 +67,7 @@ export default function FeedScreen() {
         <View style={styles.headerRow}>
           <View style={styles.brandLockup}>
             <View style={styles.brandMark}>
-              <AppText variant="subtitle" weight="900" style={styles.brandMarkText}>
+              <AppText variant="subtitle" weight="800" style={styles.brandMarkText}>
                 A
               </AppText>
             </View>
