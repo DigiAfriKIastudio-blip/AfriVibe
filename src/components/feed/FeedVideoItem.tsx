@@ -1,5 +1,5 @@
 import { useEventListener } from 'expo';
-import { useIsFocused } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVideoPlayer, VideoView } from 'expo-video';
