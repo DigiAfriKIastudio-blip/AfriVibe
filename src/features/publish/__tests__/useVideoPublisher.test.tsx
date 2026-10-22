@@ -85,7 +85,11 @@ describe('useVideoPublisher', () => {
     let picked: unknown = 'non-résolu';
     await act(async () => {
       const pending = result.current.pickDemoClip();
-      await jest.advanceTimersByTimeAsync(PUBLISH_TIMEOUTS.fileCopy + 1000);
+      // Laisser la résolution du téléchargement démarrer la copie avant
+      // d'avancer l'horloge jusqu'au délai de copie.
+      await Promise.resolve();
+      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(PUBLISH_TIMEOUTS.fileCopy + PUBLISH_TIMEOUTS.demoDownload + 1000);
       picked = await pending;
     });
 
