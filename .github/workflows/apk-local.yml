@@ -2,6 +2,9 @@ name: APK local gratuit
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
