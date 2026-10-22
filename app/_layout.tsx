@@ -117,10 +117,15 @@ export default function RootLayout() {
 function StartupLoading({ onRetry }: { onRetry: () => void }) {
   const [isSlowStartup, setIsSlowStartup] = useState(false);
 
+  const failStartupIfLoading = useAppStore((state) => state.failStartupIfLoading);
+
   useEffect(() => {
-    const timer = setTimeout(() => setIsSlowStartup(true), STARTUP_TIMEOUTS.startupWatchdog);
+    const timer = setTimeout(() => {
+      setIsSlowStartup(true);
+      failStartupIfLoading();
+    }, STARTUP_TIMEOUTS.startupWatchdog);
     return () => clearTimeout(timer);
-  }, []);
+  }, [failStartupIfLoading]);
 
   return (
     <View style={styles.centered} testID="startup-loading">

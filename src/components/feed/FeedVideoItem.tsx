@@ -38,7 +38,9 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
     instance.loop = true;
     // Le fil lit le son original des vidéos publiées ; l'utilisateur peut le couper.
     instance.muted = false;
-    instance.timeUpdateEventInterval = 0.25;
+    // Une mise à jour par seconde suffit à la barre de progression et réduit
+    // les rendus React inutiles sur les téléphones Android modestes.
+    instance.timeUpdateEventInterval = 1;
   });
 
   const [appIsActive, setAppIsActive] = useState(AppState.currentState === 'active');
