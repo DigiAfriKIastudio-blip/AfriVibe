@@ -99,8 +99,7 @@ export default function CreateScreen() {
             <View style={styles.uploadIcon}><Icon name="cloud-upload-outline" size={34} color={colors.primary} /></View>
             <AppText variant="subtitle" align="center">Ta prochaine vidéo commence ici</AppText>
             <AppText variant="body" color={colors.textMuted} align="center">
-              Depuis la galerie de votre téléphone, ou utilisez une vidéo de démonstration
-              embarquée.
+              Choisis une vidéo dans ta galerie ou découvre l’aperçu avec un clip de démonstration.
             </AppText>
             <View style={styles.pickerActions}>
               <Button
@@ -133,7 +132,7 @@ export default function CreateScreen() {
           <TextInput
             value={description}
             onChangeText={(value) => setDescription(value.slice(0, MAX_DESCRIPTION))}
-            placeholder="Décrivez votre vidéo, ajoutez des #hashtags…"
+            placeholder="Raconte ce qui se passe, ajoute des #hashtags…"
             placeholderTextColor={colors.textFaint}
             style={[styles.input, styles.textArea]}
             multiline
@@ -176,8 +175,7 @@ export default function CreateScreen() {
         <View style={styles.notice}>
           <Icon name="information-circle-outline" size={16} color={colors.textMuted} />
           <AppText variant="caption" color={colors.textMuted} style={styles.noticeText}>
-            Sans backend, la vidéo est enregistrée dans le stockage de cet appareil : elle
-            apparaît dans votre fil et votre profil, mais n’est pas publiée sur Internet.
+            Pour le moment, ta vidéo reste enregistrée sur ce téléphone. La publication publique en ligne nécessitera un serveur.
           </AppText>
         </View>
 
@@ -208,7 +206,7 @@ const styles = StyleSheet.create({
   sectionHeading: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: -spacing.sm },
   stepBadge: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceMuted, borderWidth: 1, borderColor: colors.border },
   stepCopy: { flex: 1, gap: 2 },
-  uploadIcon: { width: 68, height: 68, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,107,53,0.13)', marginBottom: spacing.xs },
+  uploadIcon: { width: 68, height: 68, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(46,139,87,0.16)', marginBottom: spacing.xs },
   pickerZone: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -218,7 +216,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: colors.borderStrong,
+    borderColor: colors.accent,
     backgroundColor: colors.surface,
   },
   pickerActions: {
