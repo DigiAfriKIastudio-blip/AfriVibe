@@ -107,7 +107,7 @@ export function FeedVideoItem({ video, height, isActive, onPressAuthor }: FeedVi
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           nativeControls={false}
-          surfaceType="surfaceView"
+          surfaceType="textureView"
           accessibilityLabel={`Vidéo de ${author?.displayName ?? 'AfriVibe'}`}
         />
       ) : posterSource ? (
